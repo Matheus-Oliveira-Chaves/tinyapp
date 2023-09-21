@@ -39,6 +39,13 @@ app.post("/urls", (req, res) => {
   res.redirect('/urls/:id');
 });
 
+app.post("/urls/:id", (req, res) => {
+  const idToUpdate = req.params.id;
+  const newLongURL = req.body.longURL;
+  urlDatabase[idToUpdate] = newLongURL;
+  res.redirect("/urls");
+});
+
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id]
   res.redirect(longURL);
@@ -52,6 +59,13 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const idToDelete = req.params.id;
   delete urlDatabase[idToDelete];
+  res.redirect("/urls");
+});
+
+app.post("/urls/:id", (req, res) => {
+  const idToUpdate = req.params.id;
+  const newLongURL = req.body.longURL;
+  urlDatabase[idToUpdate] = newLongURL;
   res.redirect("/urls");
 });
 
