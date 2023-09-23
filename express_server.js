@@ -33,13 +33,19 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   const username = {username: req.cookies.username}
   res.render("urls_new", username);
-});
+ });
 
 app.post("/urls", (req, res) => {
   const longURL = req.body.longURL;
   const id = generateRandomString();
   urlDatabase[id] = longURL;
-  res.redirect('/urls/:id');
+  res.redirect('/urls');
+});
+
+
+app.get("/u/:id", (req, res) => {
+  const longURL = urlDatabase[req.params.id]
+  res.redirect(longURL);
 });
 
 app.post("/urls/:id", (req, res) => {
@@ -47,11 +53,6 @@ app.post("/urls/:id", (req, res) => {
   const newLongURL = req.body.longURL;
   urlDatabase[idToUpdate] = newLongURL;
   res.redirect("/urls");
-});
-
-app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id]
-  res.redirect(longURL);
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -88,6 +89,15 @@ app.post("/login", (req, res) => {
   const { username } = req.body;
   res.setHeader('Set-Cookie', `username=${username}`);
   res.redirect("/urls");
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
+});
+
+app.get("/register", (req, res) => {
+  res.render("urls_register");
 });
 
 app.listen(PORT, () => {
