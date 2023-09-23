@@ -25,13 +25,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {};
+
+
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase,  username: req.cookies.username };
+  const templateVars = { 
+    urls: urlDatabase,  
+    user: users[req.cookies.user_id]
+   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const username = {username: req.cookies.username}
+  const username = {user: users[req.cookies.user_id]};
   res.render("urls_new", username);
  });
 
@@ -56,7 +62,11 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies.username};
+  const templateVars = { 
+    id: req.params.id, 
+    longURL: urlDatabase[req.params.id],
+    user: users[req.cookies.user_id],
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -86,13 +96,47 @@ app.get("/hello", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const { username } = req.body;
-  res.setHeader('Set-Cookie', `username=${username}`);
+  const { email, password } = req.body;
+  for (const userId in users) {
+    const user = users[userId];
+    if (user.email === email && user.password === password) {
+      res.cookie('user_id', user.id); 
+      res.redirect("/urls");
+      return;
+    }
+  }
+  res.status(403).send("Invalid email or password");
+});
+  
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
-app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+app.post("/register", (req, res) => {
+  const userId = generateRandomString();
+  const { email, password } = req.body;
+
+  if(!email || !password) {
+    res.status(400).send('Email and password cannot be empty');
+    return;
+  }
+
+  for (const userId in users) {
+    const user = users[userId];
+    if (user.email === email) {
+      res.status(400).send("Email already registered");
+      return;
+    }
+  }
+  const newUser = {
+    id: userId,
+    email,
+    password
+  };
+  users[userId] = newUser;
+  res.cookie('user_id', userId);
   res.redirect("/urls");
 });
 
