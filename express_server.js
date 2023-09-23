@@ -144,6 +144,10 @@ app.get("/register", (req, res) => {
   res.render("urls_register");
 });
 
+app.get("/login", (req, res) => {
+  res.render("urls_login"); 
+});
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });

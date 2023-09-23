@@ -19,12 +19,8 @@
         <button type="submit" class="btn btn-danger">Logout</button>
       </form>
     <% } else { %>
-      <form class="form-inline" method="POST" action="/login">
-        <div class="form-group">
-          <input type="text" class="form-control" name="username" placeholder="Username">
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-      </form>
+      <a class="nav-item nav-link text-light" href="/register">Register</a> 
+      <a class="nav-item nav-link text-light" href="/login">Login</a> 
     <% } %>
 
   
