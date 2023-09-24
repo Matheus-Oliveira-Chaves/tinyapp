@@ -100,18 +100,22 @@ app.post("/login", (req, res) => {
   for (const userId in users) {
     const user = users[userId];
     if (user.email === email && user.password === password) {
-      res.cookie('user_id', user.id); 
+      res.cookie('user_id', userId); 
       res.redirect("/urls");
       return;
     }
   }
   res.status(403).send("Invalid email or password");
 });
+
+app.get("/login", (req, res) => {
+  res.render("urls_login");
+});
   
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.post("/register", (req, res) => {
@@ -123,8 +127,8 @@ app.post("/register", (req, res) => {
     return;
   }
 
-  for (const userId in users) {
-    const user = users[userId];
+  for (const existingUserId in users) {
+    const user = users[existingUserId];
     if (user.email === email) {
       res.status(400).send("Email already registered");
       return;
@@ -144,9 +148,6 @@ app.get("/register", (req, res) => {
   res.render("urls_register");
 });
 
-app.get("/login", (req, res) => {
-  res.render("urls_login"); 
-});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
