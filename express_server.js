@@ -16,7 +16,7 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1'],
 
-}))
+}));
 app.set("view engine", "ejs");
 
 app.get("/urls", (req, res) => {
@@ -57,7 +57,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
-  const longUrl = urlDatabase[id].longUrl;
+  const longUrl = urlDatabase[id] ? urlDatabase[id].longURL : null;
   if (!longUrl) {
     res.status(400).send("URL not found.");
   } else {
