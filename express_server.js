@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const cookieParser = require('cookie-parser')
+const cookieSession = require('cookie-session')
+const bcrypt = require('bcryptjs');
 
 function generateRandomString() {
   const length = 6;
@@ -25,7 +26,11 @@ function urlsForUser(id) {
 }
 
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1'],
+  
+}))
 app.set("view engine", "ejs");
 
 
@@ -44,7 +49,7 @@ const users = {};
 
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.user_id];
   if (!user) {
     res.status(400).send("You must be logged in to view your URLs. Please log in or register.");
   } else {
@@ -58,7 +63,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.user_id];
   if (!user) {
     res.redirect("/login");
   } else {
@@ -68,12 +73,11 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  if (!users[req.cookies.user_id]) {
+  if (!users[req.session.user_id]) {
     res.status(400).send("You must be logged in to shorten URLs.");
   } else {
     const longURL = req.body.longURL;
     const id = generateRandomString();
-    console.log("🚀 ~ file: express_server.js:77 ~ app.post ~ urlDatabase[id].longUrl:", urlDatabase[id].longUrl)
     urlDatabase[id].longUrl = longURL;
     res.redirect('/urls');
   }
@@ -98,7 +102,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
 
@@ -119,7 +123,7 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
   
@@ -137,7 +141,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
   
@@ -168,10 +172,12 @@ app.get("/hello", (req, res) => {
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
+  
   for (const userId in users) {
     const user = users[userId];
-    if (user.email === email && user.password === password) {
-      res.cookie('user_id', userId); 
+    
+    if (user.email === email && bcrypt.compareSync(password, user.password)) {
+      req.session.user_id = userId;
       res.redirect("/urls");
       return;
     }
@@ -180,7 +186,7 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  if (users[req.cookies.user_id]) {
+  if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
   res.render("urls_login");
@@ -189,7 +195,7 @@ app.get("/login", (req, res) => {
   
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  res.clearCookie("session");
   res.redirect("/login");
 });
 
@@ -197,7 +203,7 @@ app.post("/register", (req, res) => {
   const userId = generateRandomString();
   const { email, password } = req.body;
 
-  if(!email || !password) {
+  if (!email || !password) {
     res.status(400).send('Email and password cannot be empty');
     return;
   }
@@ -209,18 +215,19 @@ app.post("/register", (req, res) => {
       return;
     }
   }
+  const hashedPassword = bcrypt.hashSync(password, 10); 
   const newUser = {
     id: userId,
     email,
-    password
+    password: hashedPassword, 
   };
   users[userId] = newUser;
-  res.cookie('user_id', userId);
+  req.session.user_id = userId;;
   res.redirect("/urls");
 });
 
 app.get("/register", (req, res) => {
-  if (users[req.cookies.user_id]) {
+  if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
   res.render("urls_register");
