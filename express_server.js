@@ -3,50 +3,21 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session')
 const bcrypt = require('bcryptjs');
-
-function generateRandomString() {
-  const length = 6;
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let randomString = "";
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    randomString += charset[randomIndex];
-  }
-  return randomString;
-}
-
-function urlsForUser(id) {
-  const userUrls = {};
-  for (const shortUrl in urlDatabase) {
-    if (urlDatabase[shortUrl].userID === id) {
-      userUrls[shortUrl] = urlDatabase[shortUrl].longUrl;
-    }
-  }
-  return userUrls;
-}
+const {
+  generateRandomString,
+  getUserByEmail,
+  urlsForUser,
+  urlDatabase,
+  users,
+} = require('./helpers');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
   keys: ['key1'],
-  
+
 }))
 app.set("view engine", "ejs");
-
-
-const urlDatabase = {
-  "b2xVn2": {
-    longURL: "http://www.lighthouselabs.ca",
-    userID: "user1",
-  },
-  "9sm5xK": {
-    longURL: "http://www.google.com",
-    userID: "user2",
-  },
-};
-
-const users = {};
-
 
 app.get("/urls", (req, res) => {
   const user = users[req.session.user_id];
@@ -115,7 +86,7 @@ app.get("/urls/:id", (req, res) => {
   } else {
     const templateVars = {
       id: shortUrl,
-      longUrl: url ? url.longURL : '', 
+      longUrl: url ? url.longURL : '',
       user,
     };
     res.render("urls_show", templateVars);
@@ -126,7 +97,7 @@ app.post("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
-  
+
   if (!user) {
     res.status(400).send("You must be logged in to edit URLs. Please log in or register.");
   } else if (!url) {
@@ -144,7 +115,7 @@ app.post("/urls/:id/delete", (req, res) => {
   const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
-  
+
   if (!user) {
     res.status(400).send("You must be logged in to delete URLs. Please log in or register.");
   } else if (!url) {
@@ -170,29 +141,29 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-  
-  for (const userId in users) {
-    const user = users[userId];
-    
-    if (user.email === email && bcrypt.compareSync(password, user.password)) {
-      req.session.user_id = userId;
-      res.redirect("/urls");
-      return;
-    }
-  }
-  res.status(400).send("Invalid email or password");
-});
-
 app.get("/login", (req, res) => {
   if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
-  res.render("urls_login");
+    res.render("urls_login");
   }
 });
-  
+
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).send("Email and password cannot be empty");
+    return;
+  }
+  const user = getUserByEmail(email, users);
+  if (user && bcrypt.compareSync(password, user.password)) {
+    req.session.user_id = user.id;
+    res.redirect("/urls");
+  } else {
+    res.status(400).send("Invalid email or password");
+  }
+});
+
 
 app.post("/logout", (req, res) => {
   res.clearCookie("session");
@@ -215,11 +186,11 @@ app.post("/register", (req, res) => {
       return;
     }
   }
-  const hashedPassword = bcrypt.hashSync(password, 10); 
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const newUser = {
     id: userId,
     email,
-    password: hashedPassword, 
+    password: hashedPassword,
   };
   users[userId] = newUser;
   req.session.user_id = userId;;
@@ -230,7 +201,7 @@ app.get("/register", (req, res) => {
   if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
-  res.render("urls_register");
+    res.render("urls_register");
   }
 });
 
