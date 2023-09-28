@@ -25,6 +25,7 @@ app.get("/urls", (req, res) => {
     res.status(400).send("You must be logged in to view your URLs. Please log in or register.");
   } else {
     const userUrls = urlsForUser(user.id);
+    console.log(`userUrls: `, userUrls);
     const templateVars = {
       urls: userUrls,
       user,
@@ -49,7 +50,10 @@ app.post("/urls", (req, res) => {
   } else {
     const longURL = req.body.longURL;
     const id = generateRandomString();
-    urlDatabase[id].longUrl = longURL;
+    urlDatabase[id]= {
+      longURL:longURL,
+      userID:req.session.user_id
+    };
     res.redirect('/urls');
   }
 });
@@ -57,7 +61,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
-  const longUrl = urlDatabase[id] ? urlDatabase[id].longURL : null;
+  const longUrl = urlDatabase[id] ? urlDatabase[id].longUrl : null;
   if (!longUrl) {
     res.status(400).send("URL not found.");
   } else {
@@ -67,8 +71,8 @@ app.get("/u/:id", (req, res) => {
 
 app.post("/urls/:id", (req, res) => {
   const idToUpdate = req.params.id;
-  const newLongUrl = req.body.longUrl;
-  urlDatabase[id].longUrl = newLongUrl;
+  const newLongUrl = req.body.longURL;
+  urlDatabase[idToUpdate].longURL = newLongUrl;
   res.redirect("/urls");
 });
 
@@ -86,7 +90,7 @@ app.get("/urls/:id", (req, res) => {
   } else {
     const templateVars = {
       id: shortUrl,
-      longUrl: url ? url.longURL : '',
+      longURL: url ? url.longUrl : '',
       user,
     };
     res.render("urls_show", templateVars);
@@ -145,9 +149,10 @@ app.get("/login", (req, res) => {
   if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
-    res.render("urls_login");
+     const templateVars = {user: null}
+    res.render("urls_login", templateVars);
   }
-});
+}); 
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -201,7 +206,8 @@ app.get("/register", (req, res) => {
   if (users[req.session.user_id]) {
     res.redirect("/urls");
   } else {
-    res.render("urls_register");
+    const templateVars = {user: null}
+    res.render("urls_register", templateVars);
   }
 });
 
