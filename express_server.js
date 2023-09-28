@@ -25,7 +25,6 @@ app.get("/urls", (req, res) => {
     res.status(400).send("You must be logged in to view your URLs. Please log in or register.");
   } else {
     const userUrls = urlsForUser(user.id);
-    console.log(`userUrls: `, userUrls);
     const templateVars = {
       urls: userUrls,
       user,
