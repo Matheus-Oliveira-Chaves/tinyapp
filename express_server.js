@@ -78,9 +78,6 @@ app.get("/urls/:id", (req, res) => {
       longURL: url ? url.longURL : '',
       user,
     };
-
-    
-
     res.render("urls_show", templateVars);
   }
 });
