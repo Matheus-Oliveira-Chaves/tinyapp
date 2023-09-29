@@ -3,13 +3,8 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session')
 const bcrypt = require('bcryptjs');
-const {
-  generateRandomString,
-  getUserByEmail,
-  urlsForUser,
-  urlDatabase,
-  users,
-} = require('./helpers');
+const { generateRandomString, getUserByEmail, urlsForUser, checkAuthorization, } = require('./helpers');
+const { urlDatabase, users, } = require('./data');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
@@ -68,26 +63,13 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
-app.post("/urls/:id", (req, res) => {
-  const idToUpdate = req.params.id;
-  const newLongUrl = req.body.longURL;
-  urlDatabase[idToUpdate].longURL = newLongUrl;
-  res.redirect("/urls");
-});
-
 app.get("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
-
-  if (!user) {
-    res.status(400).send("You must be logged in to view this URL. Please log in or register.");
-  } else if (!url) {
-    res.status(400).send("URL not found.");
-  } else if (url.userID !== user.id) {
-    res.status(400).send("You do not have permission to view this URL.");
-  } else {
-    const templateVars = {
+  
+  if (checkAuthorization(user, url, res)) {
+        const templateVars = {
       id: shortUrl,
       longURL: url ? url.longUrl : '',
       user,
@@ -100,17 +82,14 @@ app.post("/urls/:id", (req, res) => {
   const user = users[req.session.user_id];
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
+  const idToUpdate = req.params.id;
+  const newLongUrl = req.body.longURL;
 
-  if (!user) {
-    res.status(400).send("You must be logged in to edit URLs. Please log in or register.");
-  } else if (!url) {
-    res.status(400).send("URL not found.");
-  } else if (url.userID !== user.id) {
-    res.status(400).send("You do not have permission to edit this URL.");
-  } else {
-    const newLongUrl = req.body.longUrl;
-    urlDatabase[shortUrl].longUrl = newLongUrl;
-    res.redirect("/urls");
+  if (checkAuthorization(user, url, res)) {
+  urlDatabase[idToUpdate].longURL = newLongUrl;
+  res.redirect("/urls");
+  
+ 
   }
 });
 
@@ -119,29 +98,10 @@ app.post("/urls/:id/delete", (req, res) => {
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
 
-  if (!user) {
-    res.status(400).send("You must be logged in to delete URLs. Please log in or register.");
-  } else if (!url) {
-    res.status(400).send("URL not found.");
-  } else if (url.userID !== user.id) {
-    res.status(400).send("You do not have permission to delete this URL.");
-  } else {
+  if (checkAuthorization(user, url, res)) {
     delete urlDatabase[shortUrl];
     res.redirect("/urls");
   }
-});
-
-
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/login", (req, res) => {
@@ -175,21 +135,20 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  const userId = generateRandomString();
   const { email, password } = req.body;
-
+  
   if (!email || !password) {
     res.status(400).send('Email and password cannot be empty');
     return;
   }
-
-  for (const existingUserId in users) {
-    const user = users[existingUserId];
-    if (user.email === email) {
+  
+  const existingUser = getUserByEmail(email,users);
+    if (existingUser) {
       res.status(400).send("Email already registered");
       return;
     }
-  }
+  
+  const userId = generateRandomString();
   const hashedPassword = bcrypt.hashSync(password, 10);
   const newUser = {
     id: userId,
