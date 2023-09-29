@@ -75,9 +75,12 @@ app.get("/urls/:id", (req, res) => {
   if (checkAuthorization(user, url, res)) {
         const templateVars = {
       id: shortUrl,
-      longURL: url ? url.longUrl : '',
+      longURL: url ? url.longURL : '',
       user,
     };
+
+    
+
     res.render("urls_show", templateVars);
   }
 });
