@@ -14,6 +14,10 @@ app.use(cookieSession({
 }));
 app.set("view engine", "ejs");
 
+app.get("/", (req, res) => {
+  res.render("welcome");
+});
+
 app.get("/urls", (req, res) => {
   const user = users[req.session.user_id];
   if (!user) {
@@ -88,8 +92,6 @@ app.post("/urls/:id", (req, res) => {
   if (checkAuthorization(user, url, res)) {
   urlDatabase[idToUpdate].longURL = newLongUrl;
   res.redirect("/urls");
-  
- 
   }
 });
 
@@ -130,7 +132,7 @@ app.post("/login", (req, res) => {
 
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("session");
+  req.session = null;
   res.redirect("/login");
 });
 
